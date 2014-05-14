@@ -30,7 +30,7 @@ my $template = <<'EOF';
 %global import_path     @PKG@
 %global gopath          %{_datadir}/gocode
 %global commit          @COMMIT@
-%global shortcommit     %(c=%{commit}; echo ${c:0:7})
+%global shortcommit     %(c=%{commit}; echo ${c:0:@SHORTCOMMIT@})
 
 Name:           @NAME@
 Version:        0
@@ -38,7 +38,7 @@ Release:        0.1.git%{shortcommit}%{?dist}
 Summary:        @SUMMARY@
 License:        @LICENSE@
 URL:            http://%{import_path}
-Source0:        https://%{import_path}/archive/%{commit}/@REPO@-%{shortcommit}.tar.gz
+Source0:        @SOURCE@
 BuildArch:      noarch
 %if 0%{?fedora} < 19 && 0%{?rhel} < 7
 ExclusiveArch:  %{ix86} x86_64 %{arm} noarch
@@ -60,7 +60,7 @@ This package contains library source intended for building other packages
 which use %{import_path}.
 
 %prep
-%setup -n @REPO@-%{commit}
+%setup @SETUP@
 
 %build
 
@@ -79,7 +79,6 @@ EOF
 # Reasonable defaults, hopefully
 my %substs;
 $substs{PKG} = $pkg;
-($substs{REPO}) = $pkg =~ /([^\/]*)$/ or die 'Bad (empty?) pkg name given';
 $substs{LICENSE} = 'XXX: FIXME: Determine proper license';
 $substs{NAME} = "golang-$pkg";
 $substs{NAME} =~ s/\.[^\/]*//;
@@ -88,21 +87,39 @@ $substs{DESCRIPTION} = '%{summary}';
 
 # Try to fetch this from github.
 # XXX: Add google code and maybe some more
-$substs{SUMMARY} = eval { from_json (get ("https://api.github.com/repos/$1"))->{description} }
-	if ($pkg =~ /^github.com\/(.*)/);
+if ($pkg =~ /^github.com\/(.*\/([^\/]*))$/) {
+	$substs{SUMMARY} = eval { from_json (get ("https://api.github.com/repos/$1"))->{description} };
+	$substs{SOURCE} = "https://%{import_path}/archive/%{commit}/$2-%{shortcommit}.tar.gz";
+	$substs{SETUP} = "-n $2-%{commit}";
+} elsif ($pkg =~ /^code.google.com\/p\/([^\/]*)/) {
+	$substs{SOURCE} = "http://$1.googlecode.com/archive/%{commit}.zip";
+	$substs{SETUP} = "-n $1-%{shortcommit}";
+	$substs{SHORTCOMMIT} = 12;
+	$substs{NAME} =~ s/^golang-code-p-/golang-googlecode-/g
+}
+$substs{SOURCE} ||= 'XXX: FIXME: Determine source distribution location';
 $substs{SUMMARY} ||= 'XXX: FIXME: Determine a short summary';
+$substs{SETUP} ||= "# XXX: FIXME: Add source tree name";
+$substs{SHORTCOMMIT} ||= 7;
 
 # Now fetch the code. We'll need that to determine license, dependencies, 
 # topmost commit and such stuff.
 # XXX: Add Mercurial, etc?
-my $localpath = $workspace.'/'.$substs{REPO};
+my $localpath = $workspace.'/'.$substs{NAME};
+my $scm;
 unless (-d $localpath) {
-	system "git clone http://$pkg $localpath" and die 'Error cloning repository';
+	system ("git clone https://$pkg $localpath") == 0
+		or system ("hg clone https://$pkg $localpath") == 0
+		or die 'Error cloning repository';
 }
 
 # Determine the repository tip.
 # XXX: Add Mercurial, etc?
-$substs{COMMIT} = `git --git-dir=$localpath/.git log --format=%H -1`;
+if (-d "$localpath/.git") {
+	$substs{COMMIT} = `git --git-dir=$localpath/.git log --format=%H -1`;
+} elsif (-d "$localpath/.hg") {
+	$substs{COMMIT} = `hg --repository $localpath --debug id -i`;
+}
 chomp $substs{COMMIT};
 die 'Unable to determine topmost commit' unless $substs{COMMIT};
 
