@@ -1,9 +1,26 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+go2rpm - Create RPM packages from Go packages
+
+=head1 SYNOPSIS
+
+go2rpm [options] [--pkg] <package>
+
+=head1 DESCRIPTION
+
+B<go2rpm> is a tool that helps packaging Go modules into RPM packages. RPM is a
+tool that makes it possible to build and distribute software in a
+language-agnostic and runtime-agnostic manner.
+
+=cut
+
 use JSON;
 use LWP::Simple;
 use Getopt::Long;
 use File::Temp qw/tempdir/;
+use Pod::Usage;
 
 use strict;
 use warnings;
@@ -13,15 +30,55 @@ my $pkg;
 my $spec;
 my $srpm;
 my $workspace;
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h>, B<--help>
+
+Print a brief help message and exits.
+
+=item B<-m>, B<--man>
+
+Prints the manual page and exits.
+
+=item B<--spec> B<< <filename> >>
+
+Save the generated RPM SPEC file into given file.
+Defaults to standard output.
+
+=item B<--srpm>
+
+Fetch the distribution file and build a source RPM package.
+
+=item B<--workspace> B<< <directory> >>
+
+Specify workspace. It will be used to keep SCM checkouts (and SPEC files in
+case you're building a SRPM unless you've overriden it).
+
+By default, a temporary directory will be used, that will be cleand up upon
+exit.
+
+=item [ B<--pkg> ] B<< <package> >>
+
+Name of the Go package to generate RPM for.
+
+=back
+
+=cut
+
 GetOptions (
 	'pkg=s'		=> \$pkg,
 	'spec=s'	=> \$spec,
 	'srpm'		=> \$srpm,
-	'workspace=s'	=> \$workspace,	
-) or die 'Bad command line arguments';
+	'workspace=s'	=> \$workspace,
+	"h|help"	=> sub { pod2usage (0) },
+	"m|man"		=> sub { pod2usage (-verbose => 2) },
+) or pod2usage (2);
 
 $pkg = shift @ARGV if @ARGV and not $pkg;
-die 'Package name not specified' unless $pkg;
+pod2usage ('Package name not specified') unless $pkg;
 $workspace = tempdir (CLEANUP => 1) unless $workspace;
 
 # Beautiful, isn't it?
@@ -102,7 +159,7 @@ $substs{SUMMARY} ||= 'XXX: FIXME: Determine a short summary';
 $substs{SETUP} ||= "# XXX: FIXME: Add source tree name";
 $substs{SHORTCOMMIT} ||= 7;
 
-# Now fetch the code. We'll need that to determine license, dependencies, 
+# Now fetch the code. We'll need that to determine license, dependencies,
 # topmost commit and such stuff.
 # XXX: Add Mercurial, etc?
 my $localpath = $workspace.'/'.$substs{NAME};
@@ -199,3 +256,45 @@ if ($srpm) {
 	system ('rpmbuild', '--define', '_disable_source_fetch 0', '-bs', $spec)
 		and die 'Could not create the SRPM';
 }
+
+=head1 BUGS
+
+Plenty, likely. Fixes are more than welcome!
+
+=over
+
+=item * Only supports GitHub and Google code
+
+
+=item * Is very hackish
+
+You're supposed to read and fix up the generated SPEC file by hand.
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<rpm> -- RPM Package manager
+
+=item *
+
+L<rpmbuild> -- Build a RPM package
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright 2014 Lubomir Rintel
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 AUTHOR
+
+Lubomir Rintel C<lkundrak@v3.sk>
+
+=cut
