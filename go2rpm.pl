@@ -132,6 +132,9 @@ foreach (@{$substs{DOCFILES}}) {
 		and grep { /without limitation the rights to use/ } @content
 		and grep { /substantial portions of the Software/ } @content
 		and grep { /INCLUDING BUT NOT LIMITED TO THE WARRANTIES/ } @content;
+	$substs{LICENSE} = 'BSD'
+		if grep { /Redistributions of source code must retain/ } @content
+		and grep { /Redistributions in binary form must reproduce/ } @content;
 }
 
 # The hardest part. Crafting the change log entry.
