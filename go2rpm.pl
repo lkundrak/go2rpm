@@ -257,6 +257,20 @@ if ($srpm) {
 		and die 'Could not create the SRPM';
 }
 
+=head1 EXAMPLES
+
+=over
+
+=item B<go2rpm.pl --srpm github.com/ActiveState/tail>
+
+Genreate the SRPM, leaving no other arficacts around.
+
+=item B<< go2rpm.pl --workspace ./stuff github.com/ActiveState/tail >golang-Activestate-tail.spec >>
+
+Genreate the SPEC file, leaving the checked out repository around.
+
+=back
+
 =head1 BUGS
 
 Plenty, likely. Fixes are more than welcome!
