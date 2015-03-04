@@ -113,8 +113,8 @@ ExclusiveArch:  %{ix86} x86_64 %{arm} noarch
 %package devel
 Requires:       golang
 Requires:       golang(@GOREQUIRES@)
-Summary:        A golang library for logging to systemd
-Provides:       golang(%{import_path}/log) = %{version}-%{release}
+Summary:        %{summary}
+Provides:       golang(%{import_path}) = %{version}-%{release}
 
 %description devel
 %{summary}
