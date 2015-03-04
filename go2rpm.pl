@@ -146,6 +146,7 @@ $substs{LICENSE} = 'XXX: FIXME: Determine proper license';
 $substs{NAME} = "golang-$pkg";
 $substs{NAME} =~ s/\.[^\/]*//;
 $substs{NAME} =~ s/\//-/g;
+$substs{NAME} =~ s/golang-golang/golang/g;
 $substs{DESCRIPTION} = '%{summary}';
 
 # Try to fetch this from github.
@@ -159,6 +160,12 @@ if ($pkg =~ /^github.com\/(.*\/([^\/]*))$/) {
 	$substs{SETUP} = "-n $1-%{shortcommit}";
 	$substs{SHORTCOMMIT} = 12;
 	$substs{NAME} =~ s/^golang-code-p-/golang-googlecode-/g
+} elsif ($pkg =~ /^golang.org\/x\/(.*)/) {
+	$pkg = "go.googlesource.com/$1";
+	get ("https://$pkg") =~ /<div class="repository-description">([^<]*)/
+		and $substs{SUMMARY} = $1;
+	$substs{SOURCE} = "https://$pkg/+archive/%{shortcommit}.tar.gz";
+	$substs{SETUP} = "-c";
 }
 $substs{SOURCE} ||= 'XXX: FIXME: Determine source distribution location';
 $substs{SUMMARY} ||= 'XXX: FIXME: Determine a short summary';
