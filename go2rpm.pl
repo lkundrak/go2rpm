@@ -6,7 +6,13 @@ go2rpm - Create RPM packages from Go packages
 
 =head1 SYNOPSIS
 
-go2rpm [options] [--pkg] <package>
+go2rpm <package>
+
+go2rpm [--spec | --srpm] [--workspace <directory>] [--pkg] <package>
+
+go2rpm --man
+
+go2rpm --help
 
 =head1 DESCRIPTION
 
@@ -310,7 +316,7 @@ L<rpmbuild> -- Build a RPM package
 
 =head1 COPYRIGHT
 
-Copyright 2014 Lubomir Rintel
+Copyright 2014, 2015 Lubomir Rintel
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
