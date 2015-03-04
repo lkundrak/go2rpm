@@ -27,6 +27,7 @@ use LWP::Simple;
 use Getopt::Long;
 use File::Temp qw/tempdir/;
 use Pod::Usage;
+use File::Find;
 
 use strict;
 use warnings;
@@ -111,10 +112,11 @@ ExclusiveArch:  %{ix86} x86_64 %{arm} noarch
 @DESCRIPTION@
 
 %package devel
+Summary:        %{summary}
 Requires:       golang
 Requires:       golang(@GOREQUIRES@)
-Summary:        %{summary}
 Provides:       golang(%{import_path}) = %{version}-%{release}
+Provides:       golang(%{import_path}/@GOPROVIDES@) = %{version}-%{release}
 
 %description devel
 %{summary}
@@ -192,6 +194,22 @@ if (-d "$localpath/.git") {
 }
 chomp $substs{COMMIT};
 die 'Unable to determine topmost commit' unless $substs{COMMIT};
+
+# Find provides. Ahem.
+$substs{GOPROVIDES} = [];
+finddepth (sub {
+	my $package;
+
+	return unless $File::Find::name =~ /$localpath\/(.+\/)?[^\/]+\/[^\/]+\.go$/;
+	my $base = $1 || '';
+	open (my $f, $_) or die $!;
+	/^package ([\S+]*)/ and $package = $1 foreach <$f>;
+	return unless $package;
+	return if $package =~ /_test$/;
+
+	push @{$substs{GOPROVIDES}}, "$base$package"
+		unless grep {$_ eq "$base$package"} @{$substs{GOPROVIDES}};
+}, $localpath);
 
 # Find dependencies.
 # Maybe there's an easier way to do this? Who knows.
