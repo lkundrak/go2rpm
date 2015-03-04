@@ -8,7 +8,7 @@ go2rpm - Create RPM packages from Go packages
 
 go2rpm <package>
 
-go2rpm [--spec | --srpm] [--workspace <directory>] [--pkg] <package>
+go2rpm [--spec | --srpm] [--workspace <directory>] [--commit <commit>] [--pkg] <package>
 
 go2rpm --man
 
@@ -37,6 +37,7 @@ my $pkg;
 my $spec;
 my $srpm;
 my $workspace;
+my $ref;
 
 =head1 OPTIONS
 
@@ -67,6 +68,10 @@ case you're building a SRPM unless you've overriden it).
 By default, a temporary directory will be used, that will be cleand up upon
 exit.
 
+=item B<--commit> B<< <ref> >>
+
+Use a specified commit instead of ref.
+
 =item [ B<--pkg> ] B<< <package> >>
 
 Name of the Go package to generate RPM for.
@@ -80,6 +85,7 @@ GetOptions (
 	'spec=s'	=> \$spec,
 	'srpm'		=> \$srpm,
 	'workspace=s'	=> \$workspace,
+	'commit=s'	=> \$ref,
 	"h|help"	=> sub { pod2usage (0) },
 	"m|man"		=> sub { pod2usage (-verbose => 2) },
 ) or pod2usage (2);
@@ -143,7 +149,6 @@ EOF
 
 # Reasonable defaults, hopefully
 my %substs;
-my $ref = '';
 $substs{PKG} = $pkg;
 $substs{LICENSE} = 'XXX: FIXME: Determine proper license';
 $substs{NAME} = "golang-$pkg";
