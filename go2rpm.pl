@@ -234,21 +234,29 @@ if ($spec) {
 	open $specfile, '>&STDOUT' or die $!;
 }
 foreach my $line (split /\n\K/, $template) {
-	my $replaced = '';
+	my $replaced;
 
 	foreach my $key (keys %substs) {
-		# Maybe there's multiple values to fill in
-		my @replaces = ref $substs{$key}
-			? @{$substs{$key}}
-			: $substs{$key};
-		foreach (@replaces) {
+		next unless $line =~ /\@$key\@/;
+
+		# A line replace?
+		if (ref $substs{$key}) {
+			# At most one line key per line
+			die if $replaced;
+
+			$replaced = '';
+			foreach (@{$substs{$key}}) {
+				my $this = $line;
+				$replaced .= $this if $this =~ s/\@$key\@/$_/g;
+			}
+		} else {
 			my $this = $line;
-			$replaced .= $this if $this =~ s/\@$key\@/$_/g;
+			$replaced .= $this if $this =~ s/\@$key\@/$substs{$key}/g;
 		}
-			
+
 	}
 
-	print $specfile $replaced || $line;
+	print $specfile defined $replaced ? $replaced : $line;
 }
 
 # Build srpm
