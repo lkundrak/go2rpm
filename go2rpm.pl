@@ -143,6 +143,7 @@ EOF
 
 # Reasonable defaults, hopefully
 my %substs;
+my $ref = '';
 $substs{PKG} = $pkg;
 $substs{LICENSE} = 'XXX: FIXME: Determine proper license';
 $substs{NAME} = "golang-$pkg";
@@ -168,6 +169,15 @@ if ($pkg =~ /^github.com\/(.*\/([^\/]*))$/) {
 		and $substs{SUMMARY} = $1;
 	$substs{SOURCE} = "https://$pkg/+archive/%{shortcommit}.tar.gz";
 	$substs{SETUP} = "-c";
+} elsif ($pkg =~ /^gopkg.in\/(.*\/)?(.*)\.(.*)/) {
+	my $user = $1 || "go-$2";
+	my $pkg = $2;
+	$ref ||= $3;
+
+	$substs{SUMMARY} = eval { from_json (get ("https://api.github.com/repos/$user/$pkg"))->{description} };
+	$substs{SOURCE} = "https://github.com/$user/$pkg/archive/%{commit}/$pkg-%{shortcommit}.tar.gz";
+	$substs{SETUP} = "-n $2-%{commit}";
+	$pkg = "github.com/$user/$pkg";
 }
 $substs{SOURCE} ||= 'XXX: FIXME: Determine source distribution location';
 $substs{SUMMARY} ||= 'XXX: FIXME: Determine a short summary';
@@ -188,9 +198,9 @@ unless (-d $localpath) {
 # Determine the repository tip.
 # XXX: Add Mercurial, etc?
 if (-d "$localpath/.git") {
-	$substs{COMMIT} = `git --git-dir=$localpath/.git log --format=%H -1`;
+	$substs{COMMIT} = `git --git-dir=$localpath/.git log --format=%H -1 $ref`;
 } elsif (-d "$localpath/.hg") {
-	$substs{COMMIT} = `hg --repository $localpath --debug id -i`;
+	$substs{COMMIT} = `hg --repository $localpath --debug id -i $ref`;
 }
 chomp $substs{COMMIT};
 die 'Unable to determine topmost commit' unless $substs{COMMIT};
